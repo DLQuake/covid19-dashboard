@@ -22,8 +22,8 @@ const CountryDetailsPage = async ({ params }) => {
         return (
             <main className="container has-text-centered py-6">
                 <h1 className="title">Country data not found</h1>
-                <p className="mb-4">Nie udało się pobrać statystyk. Spróbuj ponownie później.</p>
-                <Link href="/" className="button is-primary">Wróć do tabeli państw</Link>
+                <p className="mb-4">The statistics could not be retrieved. Please try again later.</p>
+                <Link href="/" className="button is-primary">Back to Home</Link>
             </main>
         );
     }
