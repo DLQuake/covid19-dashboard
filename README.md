@@ -15,6 +15,7 @@ The COVID-19 Dashboard is an interactive web application that allows users to tr
 ## Technologies
 
 - **Next.js**: A React framework that provides server-side rendering.
+- **React**: Version 19.
 - **Chart.js**: A charting library used for visualizing data.
 - **Fetch API**: The built-in JavaScript API for making HTTP requests to external APIs.
 - **Bulma**: A modern CSS framework for styling the application.
@@ -31,7 +32,7 @@ To install and run the project locally, follow these steps:
 
    ```bash
    git clone https://github.com/DLQuake/covid19-dashboard.git
-   cd covid-dashboard
+   cd covid19-dashboard
    ```
 
 2. **Install dependencies**:
@@ -40,11 +41,15 @@ To install and run the project locally, follow these steps:
    npm install
    ```
 
+   Node.js 20.9 or newer is required by Next.js 16.
+
 3. **Run the application**:
 
    ```bash
    npm run dev
    ```
+
+   Run `npm run lint` to check the code and `npm run build` to create a production build.
 
 4. **Open your browser and go to** `http://localhost:3000`.
 

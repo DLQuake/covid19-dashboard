@@ -1,9 +1,8 @@
 "use client";
-import React from 'react';
 import { Bar } from 'react-chartjs-2';
-import {Chart, registerables} from 'chart.js';
+import 'chart.js/auto';
 
-Chart.register(...registerables);
+const numberFormatter = new Intl.NumberFormat('pl-PL');
 
 const CountryChart = ({ cases, deaths, recovered }) => {
     const data = {
@@ -13,7 +12,7 @@ const CountryChart = ({ cases, deaths, recovered }) => {
                 label: 'COVID-19 Statistics',
                 data: [cases, deaths, recovered],
                 backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(72, 199, 142, 0.6)'],
-                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)'],
+                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(72, 199, 142, 1)'],
                 borderWidth: 1,
             },
         ],
@@ -21,6 +20,13 @@ const CountryChart = ({ cases, deaths, recovered }) => {
 
     const options = {
         responsive: true,
+        scales: {
+            y: {
+                ticks: {
+                    callback: (value) => numberFormatter.format(value),
+                },
+            },
+        },
         plugins: {
             legend: {
                 position: 'top',
@@ -32,7 +38,7 @@ const CountryChart = ({ cases, deaths, recovered }) => {
         },
     };
 
-    return <Bar data={data} options={options} />;
+    return <Bar data={data} options={options} aria-label="COVID-19 cases, deaths and recoveries" />;
 };
 
 export default CountryChart;

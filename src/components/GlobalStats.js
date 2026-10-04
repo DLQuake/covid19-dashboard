@@ -1,8 +1,9 @@
-import { fetchGlobalData } from '@/lib/covidApi';
 import StatsTile from './StatsTile';
 
-export default async function GlobalStats() {
-    const data = await fetchGlobalData();
+export default function GlobalStats({ data }) {
+    if (!data) {
+        return <p className="notification is-warning" role="alert">Nie udało się pobrać globalnych statystyk.</p>;
+    }
 
     return (
         <div className="columns">

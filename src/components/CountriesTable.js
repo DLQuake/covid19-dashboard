@@ -1,35 +1,27 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { fetchCountriesData } from '@/lib/covidApi';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { formatNumber } from '@/lib/formatNumber';
 
-export default function CountriesTable() {
-    const [countries, setCountries] = useState([]);
+export default function CountriesTable({ countries }) {
     const [filter, setFilter] = useState('');
     const [sortField, setSortField] = useState('country');
     const [sortOrder, setSortOrder] = useState('asc');
 
-    useEffect(() => {
-        const getData = async () => {
-            const countriesData = await fetchCountriesData();
-            setCountries(countriesData);
-        };
-        getData();
-    }, []);
+    const sortedCountries = useMemo(() => {
+        const searchTerm = filter.trim().toLocaleLowerCase('pl-PL');
+        return countries
+            .filter(({ country }) => country.toLocaleLowerCase('pl-PL').includes(searchTerm))
+            .sort((a, b) => {
+                const aValue = a[sortField];
+                const bValue = b[sortField];
+                const comparison = typeof aValue === 'string'
+                    ? aValue.localeCompare(String(bValue ?? ''), 'pl')
+                    : Number(aValue ?? 0) - Number(bValue ?? 0);
 
-    const filteredCountries = countries.filter(country =>
-        country.country.toLowerCase().includes(filter.toLowerCase())
-    );
-
-    const sortedCountries = [...filteredCountries].sort((a, b) => {
-        const aValue = sortField === 'country' ? a.country : a[sortField];
-        const bValue = sortField === 'country' ? b.country : b[sortField];
-
-        if (sortOrder === 'asc') {
-            return typeof aValue === 'string' ? aValue.localeCompare(bValue) : aValue - bValue;
-        }
-        return typeof aValue === 'string' ? bValue.localeCompare(aValue) : bValue - aValue;
-    });
+                return sortOrder === 'asc' ? comparison : -comparison;
+            });
+    }, [countries, filter, sortField, sortOrder]);
 
     const handleSort = (field) => {
         if (sortField === field) {
@@ -44,12 +36,14 @@ export default function CountriesTable() {
         <div className="table-container">
             {/* Search input */}
             <div className="field sticky-search">
-                <label className="label">Filter Countries:</label>
+                    <label className="label" htmlFor="country-filter">Filter countries:</label>
                 <div className="control">
                     <input
-                        type="text"
+                        id="country-filter"
+                        type="search"
                         className="input"
                         placeholder="Search by country name"
+                        autoComplete="off"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     />
@@ -61,38 +55,35 @@ export default function CountriesTable() {
                 <table className="table is-fullwidth is-striped is-hoverable">
                     <thead>
                         <tr>
-                            <th>Flag</th>
-                            <th onClick={() => handleSort('country')} style={{ cursor: 'pointer' }}>
-                                Country {sortField === 'country' && (sortOrder === 'asc' ? '▲' : '▼')}
-                            </th>
-                            <th onClick={() => handleSort('cases')} style={{ cursor: 'pointer' }}>
-                                Cases {sortField === 'cases' && (sortOrder === 'asc' ? '▲' : '▼')}
-                            </th>
-                            <th onClick={() => handleSort('deaths')} style={{ cursor: 'pointer' }}>
-                                Deaths {sortField === 'deaths' && (sortOrder === 'asc' ? '▲' : '▼')}
-                            </th>
-                            <th onClick={() => handleSort('recovered')} style={{ cursor: 'pointer' }}>
-                                Recovered {sortField === 'recovered' && (sortOrder === 'asc' ? '▲' : '▼')}
-                            </th>
-                            <th>Details</th>
+                            <th scope="col">Flag</th>
+                            {['country', 'cases', 'deaths', 'recovered'].map((field) => (
+                                <th key={field} scope="col" aria-sort={sortField === field ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                                    <button className="button is-ghost p-0" type="button" onClick={() => handleSort(field)}>
+                                        {field[0].toUpperCase() + field.slice(1)} {sortField === field && (sortOrder === 'asc' ? '▲' : '▼')}
+                                    </button>
+                                </th>
+                            ))}
+                            <th scope="col">Details</th>
                         </tr>
                     </thead>
                     <tbody>
                         {sortedCountries.map((country) => (
-                            <tr key={country.countryInfo._id || country.country}>
+                            <tr key={country.countryInfo?._id || country.country}>
                                 <td>
                                     <figure className="image is-48x48">
-                                        <img src={country.countryInfo.flag} alt={`Flag of ${country.country}`} />
+                                        {/* External flag URLs are supplied by disease.sh and aren't suitable for next/image optimization. */}
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={country.countryInfo?.flag} alt={`Flag of ${country.country}`} loading="lazy" />
                                     </figure>
                                 </td>
                                 <td>
                                     {country.country}
                                 </td>
-                                <td>{country.cases.toLocaleString()}</td>
-                                <td>{country.deaths.toLocaleString()}</td>
-                                <td>{country.recovered.toLocaleString()}</td>
+                                <td>{formatNumber(country.cases)}</td>
+                                <td>{formatNumber(country.deaths)}</td>
+                                <td>{formatNumber(country.recovered)}</td>
                                 <td>
-                                    <Link href={`/${country.country}`} className="button is-primary">
+                                    <Link href={`/${encodeURIComponent(country.country)}`} className="button is-primary">
                                         View Details
                                     </Link>
                                 </td>
@@ -100,6 +91,9 @@ export default function CountriesTable() {
                         ))}
                     </tbody>
                 </table>
+                {sortedCountries.length === 0 && (
+                    <p className="has-text-centered p-4" role="status">No countries match your search.</p>
+                )}
             </div>
         </div>
     );

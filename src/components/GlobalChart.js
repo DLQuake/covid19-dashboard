@@ -1,120 +1,53 @@
-"use client";
-import React, { useEffect, useState } from 'react';
-import { Line } from 'react-chartjs-2';
-import { fetchGlobalHistoricalData } from '@/lib/covidApi';
-import {Chart, registerables} from 'chart.js';
+import HistoryMetricChart from './HistoryMetricChart';
 
-Chart.register(...registerables);
+const metrics = [
+    { key: 'cases', title: 'Cases over time', color: 'rgba(75, 192, 192, 1)' },
+    { key: 'deaths', title: 'Deaths over time', color: 'rgba(255, 99, 132, 1)' },
+    { key: 'recovered', title: 'Recovered over time', color: 'rgba(72, 199, 142, 1)' },
+];
 
-const GlobalChart = () => {
-    const [chartData, setChartData] = useState({
-        labels: [],
-        cases: [],
-        deaths: [],
-        recovered: [],
+export default function GlobalChart({ history }) {
+    if (!history) {
+        return <p className="notification is-warning" role="alert">Nie udało się pobrać danych historycznych.</p>;
+    }
+
+    const dates = Object.keys(history.cases ?? {}).sort((left, right) => {
+        const [leftMonth, leftDay, leftYear] = left.split('/').map(Number);
+        const [rightMonth, rightDay, rightYear] = right.split('/').map(Number);
+        return new Date(2000 + leftYear, leftMonth - 1, leftDay)
+            - new Date(2000 + rightYear, rightMonth - 1, rightDay);
     });
-
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        const getData = async () => {
-            try {
-                const data = await fetchGlobalHistoricalData();
-                const dates = Object.keys(data.cases);
-                const cases = Object.values(data.cases);
-                const deaths = Object.values(data.deaths);
-                const recovered = Object.values(data.recovered);
-
-                setChartData({
-                    labels: dates,
-                    cases,
-                    deaths,
-                    recovered,
-                });
-            } catch (error) {
-                console.error('Error fetching global historical data:', error);
-                setError('Failed to load data.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        getData();
-    }, []);
-
-    if (loading) return <p>Loading...</p>;
-    if (error) return <p>{error}</p>;
-
-    const options = {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-        },
-        interaction: {
-            mode: 'index',
-            intersect: false
-        },
-    };
+    const dateRange = dates.length ? `${dates[0]} – ${dates.at(-1)}` : '';
+    const recoveredValues = dates.map((date) => Number(history.recovered?.[date] ?? 0));
+    const lastRecoveredIndex = recoveredValues.reduce(
+        (lastIndex, value, index) => value > 0 ? index : lastIndex,
+        -1,
+    );
+    const recoveredDataEnd = lastRecoveredIndex >= 0 ? dates[lastRecoveredIndex] : null;
+    const recoveredNote = recoveredDataEnd
+        ? `Źródło zwraca zera po ${recoveredDataEnd}; pokazano dane tylko do ostatniego poprawnego punktu.`
+        : 'Źródło nie udostępnia poprawnych historycznych danych o ozdrowieniach.';
 
     return (
-        <div>
-            <h2 className="subtitle has-text-centered">Global COVID-19 Trends (from 08.02.2023 to 09.03.2023)</h2>
-
-            <div className="box">
-                <h3 className="title is-5 has-text-centered">Cases Over Time</h3>
-                <Line
-                    data={{
-                        labels: chartData.labels,
-                        datasets: [{
-                            label: 'Cases',
-                            data: chartData.cases,
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            fill: true,
-                        }]
-                    }}
-                    options={options}
+        <section aria-labelledby="global-trends-heading">
+            <h2 id="global-trends-heading" className="subtitle has-text-centered">
+                Global COVID-19 trends {dateRange && `(${dateRange})`}
+            </h2>
+            <p className="help has-text-centered mb-4">
+                Historia API kończy się {dates.at(-1) ?? 'brakiem dostępnych dat'}.
+            </p>
+            {metrics.map(({ key, title, color }) => (
+                <HistoryMetricChart
+                    key={key}
+                    title={title}
+                    labels={dates}
+                    values={key === 'recovered'
+                        ? recoveredValues.map((value, index) => index <= lastRecoveredIndex ? value : null)
+                        : dates.map((date) => history[key]?.[date] ?? null)}
+                    color={color}
+                    note={key === 'recovered' ? recoveredNote : undefined}
                 />
-            </div>
-
-            <div className="box">
-                <h3 className="title is-5 has-text-centered">Deaths Over Time</h3>
-                <Line
-                    data={{
-                        labels: chartData.labels,
-                        datasets: [{
-                            label: 'Deaths',
-                            data: chartData.deaths,
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                            fill: true,
-                        }]
-                    }}
-                    options={options}
-                />
-            </div>
-
-            <div className="box">
-                <h3 className="title is-5 has-text-centered">Recovered Over Time</h3>
-                <Line
-                    data={{
-                        labels: chartData.labels,
-                        datasets: [{
-                            label: 'Recovered',
-                            data: chartData.recovered,
-                            borderColor: 'rgba(72, 199, 142, 1)',
-                            backgroundColor: 'rgba(72, 199, 142, 0.2)',
-                            fill: true,
-                        }]
-                    }}
-                    options={options}
-                />
-            </div>
-        </div>
+            ))}
+        </section>
     );
-};
-
-export default GlobalChart;
+}
